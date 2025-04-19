@@ -2,156 +2,115 @@ import tkinter as tk
 import math
 import random
 from functools import partial
-from tkinter import messagebox
 
 class TicTacToe:
     def __init__(self, root):
         self.root = root
-        self.root.title("Tic Tac Toe - Ultimate Edition")
+        self.root.title("Tic Tac Toe")
         self.root.resizable(False, False)
         
-        
-        self.bg_color = "#f0f0f0"
-        self.button_color = "#ffffff" 
-        self.win_color = "#4CAF50"  
-        self.x_color = "#2196F3"    
-        self.o_color = "#F44336"    
-        self.draw_color = "#FF9800" 
-        self.disabled_color = "#E0E0E0"
-        
-        self.root.config(bg=self.bg_color)
-        
+        # Colors from tictactoe.py
+        self.colors = {
+            "bg": "#343434",  # Dark gray background
+            "button": "#343434",  # Dark gray buttons
+            "win": "#646464",  # Light gray for winning cells
+            "x": "#4584b6",  # Blue for X
+            "o": "#ffde57",  # Yellow for O
+            "text": "white"  # White text
+        }
+        self.root.config(bg=self.colors["bg"])
         
         self.stats = {"X": 0, "O": 0, "Draw": 0}
-        
-        
         self.board = [["" for _ in range(3)] for _ in range(3)]
         self.current_player = "X"
-        self.player_symbol = "X"  
-        self.ai_symbol = "O"      
-        self.difficulty = "Hard"  
-        
+        self.player_symbol = "X"
+        self.ai_symbol = "O"
         
         self.create_symbol_selection()
     
     def create_symbol_selection(self):
-        
         self.symbol_window = tk.Toplevel(self.root)
-        self.symbol_window.title("Choose Your Symbol")
+        self.symbol_window.title("Choose Symbol")
         self.symbol_window.resizable(False, False)
-        self.symbol_window.grab_set()  
+        self.symbol_window.config(bg=self.colors["bg"])
+        self.symbol_window.grab_set()
         
-        tk.Label(self.symbol_window, text="Choose your symbol:", 
-                font=("Arial", 14)).pack(pady=20)
+        tk.Label(self.symbol_window, text="Choose X or O:", font=("Consolas", 20), 
+                bg=self.colors["bg"], fg=self.colors["text"]).pack(pady=10)
+        frame = tk.Frame(self.symbol_window, bg=self.colors["bg"])
+        frame.pack(pady=5)
         
-        frame = tk.Frame(self.symbol_window)
-        frame.pack(pady=10)
-        
-        
-        tk.Button(frame, text="X", font=("Arial", 24, "bold"), 
-                 fg=self.x_color, width=3, relief="raised",
-                 command=lambda: self.set_player_symbol("X")).pack(side=tk.LEFT, padx=20)
-        
-        
-        tk.Button(frame, text="O", font=("Arial", 24, "bold"), 
-                 fg=self.o_color, width=3, relief="raised",
-                 command=lambda: self.set_player_symbol("O")).pack(side=tk.LEFT, padx=20)
+        for symbol in ["X", "O"]:
+            tk.Button(frame, text=symbol, font=("Consolas", 50, "bold"), 
+                     fg=self.colors[symbol.lower()], bg=self.colors["bg"],
+                     width=4, height=1,
+                     command=lambda s=symbol: self.set_player_symbol(s)).pack(side=tk.LEFT, padx=10)
     
     def set_player_symbol(self, symbol):
-        
         self.player_symbol = symbol
         self.ai_symbol = "O" if symbol == "X" else "X"
         self.symbol_window.destroy()
         self.create_widgets()
         self.update_status()
-        
-        
         if self.ai_symbol == "X":
-            self.current_player = "X"
             self.root.after(500, self.ai_move)
     
     def create_widgets(self):
+        self.board_frame = tk.Frame(self.root, bg=self.colors["bg"])
+        self.board_frame.pack(pady=10)
         
-        self.board_frame = tk.Frame(self.root, bg=self.bg_color)
-        self.board_frame.grid(row=0, column=0, padx=20, pady=10)
-        
-       
-        self.buttons = [[tk.Button(self.board_frame, text="", font=("Arial", 32, "bold"), 
-                         height=1, width=3, bg=self.button_color,
-                         relief="ridge", borderwidth=3,
+        self.buttons = [[tk.Button(self.board_frame, text="", font=("Consolas", 50, "bold"), 
+                         height=1, width=4, bg=self.colors["button"], fg=self.colors["x"],
                          command=partial(self.make_move, r, c))
                          for c in range(3)] for r in range(3)]
         
         for r in range(3):
             for c in range(3):
-                self.buttons[r][c].grid(row=r, column=c, padx=5, pady=5)
+                self.buttons[r][c].grid(row=r, column=c, padx=2, pady=2)
         
-       
-        self.status_label = tk.Label(self.root, text="", font=("Arial", 14, "bold"), 
-                                   bg=self.bg_color, fg="#333333")
-        self.status_label.grid(row=1, column=0, pady=(10, 5))
+        self.status_label = tk.Label(self.root, text="", font=("Consolas", 20), 
+                                   bg=self.colors["bg"], fg=self.colors["text"])
+        self.status_label.pack(pady=5)
         
+        control_frame = tk.Frame(self.root, bg=self.colors["bg"])
+        control_frame.pack(pady=5)
         
-        self.control_frame = tk.Frame(self.root, bg=self.bg_color)
-        self.control_frame.grid(row=2, column=0, pady=5)
+        tk.Button(control_frame, text="Restart", font=("Consolas", 20), 
+                 bg=self.colors["bg"], fg=self.colors["text"],
+                 command=self.restart_game).pack(side=tk.LEFT, padx=5)
         
-        
-        self.restart_button = tk.Button(self.control_frame, text="New Game", font=("Arial", 12), 
-                                      bg="#607D8B", fg="white", command=self.restart_game)
-        self.restart_button.pack(side=tk.LEFT, padx=5)
-        
-        self.difficulty_var = tk.StringVar(value="Hard")
-        self.difficulty_menu = tk.OptionMenu(self.control_frame, self.difficulty_var, 
-                                           "Easy", "Medium", "Hard", 
-                                           command=self.set_difficulty)
-        self.difficulty_menu.config(font=("Arial", 10), bg="#E0E0E0")
-        self.difficulty_menu.pack(side=tk.LEFT, padx=5)
-        
-       
-        self.stats_frame = tk.Frame(self.root, bg=self.bg_color)
-        self.stats_frame.grid(row=3, column=0, pady=(10, 20))
-        
-        tk.Label(self.stats_frame, text="Stats:", font=("Arial", 12, "bold"), bg=self.bg_color).pack(side=tk.LEFT)
+        stats_frame = tk.Frame(self.root, bg=self.colors["bg"])
+        stats_frame.pack(pady=5)
         
         self.stats_labels = {
-            "X": tk.Label(self.stats_frame, text="Player 1: 0", font=("Arial", 10), bg=self.bg_color, fg=self.x_color),
-            "O": tk.Label(self.stats_frame, text="Player 2: 0", font=("Arial", 10), bg=self.bg_color, fg=self.o_color),
-            "Draw": tk.Label(self.stats_frame, text="Draws: 0", font=("Arial", 10), bg=self.bg_color, fg=self.draw_color)
+            "X": tk.Label(stats_frame, text="You: 0", font=("Consolas", 20), 
+                         bg=self.colors["bg"], fg=self.colors["x"]),
+            "O": tk.Label(stats_frame, text="AI: 0", font=("Consolas", 20), 
+                         bg=self.colors["bg"], fg=self.colors["o"]),
+            "Draw": tk.Label(stats_frame, text="Draws: 0", font=("Consolas", 20), 
+                           bg=self.colors["bg"], fg=self.colors["text"])
         }
         
         for label in self.stats_labels.values():
-            label.pack(side=tk.LEFT, padx=10)
-    
-    def set_difficulty(self, level):
-        
-        self.difficulty = level
+            label.pack(side=tk.LEFT, padx=5)
     
     def make_move(self, row, col):
-        
         if self.board[row][col] == "":
-           
-            symbol = self.current_player
+            self.board[row][col] = self.current_player
+            self.buttons[row][col].config(text=self.current_player, state=tk.DISABLED, 
+                                        disabledforeground=self.colors[self.current_player.lower()])
             
-          
-            self.board[row][col] = symbol
-            color = self.x_color if symbol == "X" else self.o_color
-            self.buttons[row][col].config(text=symbol, state=tk.DISABLED, 
-                                        disabledforeground=color)
-            
-          
             if self.check_winner():
-                self.handle_win(symbol)
+                self.handle_win(self.current_player)
                 return
                 
             if self.is_draw():
                 self.handle_draw()
                 return
                 
-           
             self.current_player = "O" if self.current_player == "X" else "X"
             self.update_status()
 
-            
             if self.current_player == self.ai_symbol:
                 for r in range(3):
                     for c in range(3):
@@ -159,21 +118,18 @@ class TicTacToe:
                 self.root.after(500, self.ai_move)
     
     def ai_move(self):
-        
         self.status_label.config(text="AI is thinking...")
         self.root.update()
         
-        depth_limit = {"Easy": 1, "Medium": 3, "Hard": 9}[self.difficulty]
+        depth_limit = 3
         best_score = -math.inf
         best_move = None
         
-       
-        if self.difficulty == "Easy" and random.random() < 0.3:
+        if random.random() < 0.2:
             empty_cells = [(r, c) for r in range(3) for c in range(3) if self.board[r][c] == ""]
             if empty_cells:
                 best_move = random.choice(empty_cells)
         else:
-           
             for r in range(3):
                 for c in range(3):
                     if self.board[r][c] == "":
@@ -184,19 +140,16 @@ class TicTacToe:
                             best_score = score
                             best_move = (r, c)
         
-       
         self.root.after(500, lambda: self.execute_ai_move(best_move))
     
     def execute_ai_move(self, move):
-       
         if move is None:
             return
             
         r, c = move
         self.board[r][c] = self.ai_symbol
-        color = self.o_color if self.ai_symbol == "O" else self.x_color
         self.buttons[r][c].config(text=self.ai_symbol, state=tk.DISABLED, 
-                                disabledforeground=color)
+                                disabledforeground=self.colors[self.ai_symbol.lower()])
         
         if self.check_winner():
             self.handle_win(self.ai_symbol)
@@ -209,14 +162,12 @@ class TicTacToe:
         self.current_player = self.player_symbol
         self.update_status()
         
-       
         for r in range(3):
             for c in range(3):
                 if self.board[r][c] == "":
                     self.buttons[r][c].config(state=tk.NORMAL)
     
     def minimax(self, board, depth, is_maximizing, alpha, beta, depth_limit):
-        
         winner = self.check_winner(board)
         if winner == self.player_symbol:
             return -10 + depth
@@ -253,90 +204,63 @@ class TicTacToe:
             return min_eval
     
     def check_winner(self, board=None):
-       
-        if board is None:
-            board = self.board
-            
-       
+        board = board or self.board
         for i in range(3):
             if board[i][0] == board[i][1] == board[i][2] != "":
                 return board[i][0]
             if board[0][i] == board[1][i] == board[2][i] != "":
                 return board[0][i]
-        
-       
         if board[0][0] == board[1][1] == board[2][2] != "":
             return board[0][0]
         if board[0][2] == board[1][1] == board[2][0] != "":
             return board[0][2]
-        
         return None
     
     def is_draw(self, board=None):
-      
-        if board is None:
-            board = self.board
+        board = board or self.board
         return all(cell != "" for row in board for cell in row) and not self.check_winner(board)
     
     def handle_win(self, winner):
-       
         self.highlight_winner()
         self.stats[winner] += 1
         self.update_stats_display()
-        
-        if winner == self.player_symbol:
-            self.status_label.config(text="You Win!", fg=self.x_color if winner == "X" else self.o_color)
-        else:
-            self.status_label.config(text="AI Wins!", fg=self.o_color if winner == "O" else self.x_color)
-        
+        self.status_label.config(text=f"{'You' if winner == self.player_symbol else 'AI'} Wins!", 
+                               fg=self.colors[winner.lower()])
         self.disable_all_buttons()
     
     def handle_draw(self):
-       
         self.stats["Draw"] += 1
         self.update_stats_display()
-        self.status_label.config(text="It's a Draw!", fg=self.draw_color)
+        self.status_label.config(text="It's a Draw!", fg=self.colors["text"])
         self.disable_all_buttons()
     
     def highlight_winner(self):
-        
         winning_cells = []
-        board = self.board
-        
-      
         for i in range(3):
-            if board[i][0] == board[i][1] == board[i][2] != "":
+            if self.board[i][0] == self.board[i][1] == self.board[i][2] != "":
                 winning_cells.extend([(i, 0), (i, 1), (i, 2)])
-            if board[0][i] == board[1][i] == board[2][i] != "":
+            if self.board[0][i] == self.board[1][i] == self.board[2][i] != "":
                 winning_cells.extend([(0, i), (1, i), (2, i)])
-        
-        if board[0][0] == board[1][1] == board[2][2] != "":
+        if self.board[0][0] == self.board[1][1] == self.board[2][2] != "":
             winning_cells.extend([(0, 0), (1, 1), (2, 2)])
-        if board[0][2] == board[1][1] == board[2][0] != "":
+        if self.board[0][2] == self.board[1][1] == self.board[2][0] != "":
             winning_cells.extend([(0, 2), (1, 1), (2, 0)])
-        
-       
         for r, c in set(winning_cells):
-            self.buttons[r][c].config(bg=self.win_color)
+            self.buttons[r][c].config(bg=self.colors["win"])
     
     def disable_all_buttons(self):
-       
         for r in range(3):
             for c in range(3):
                 self.buttons[r][c].config(state=tk.DISABLED)
     
     def restart_game(self):
-     
         self.board = [["" for _ in range(3)] for _ in range(3)]
         self.current_player = "X"
-        
         for r in range(3):
             for c in range(3):
                 self.buttons[r][c].config(text="", state=tk.NORMAL, 
-                                        bg=self.button_color, fg="black")
-        
+                                        bg=self.colors["button"], fg=self.colors["x"])
         self.update_status()
-        
         if self.ai_symbol == "X":
             for r in range(3):
                 for c in range(3):
@@ -345,14 +269,14 @@ class TicTacToe:
     
     def update_status(self):
         if self.current_player == self.player_symbol:
-            self.status_label.config(text="Your Turn!", fg=self.x_color if self.player_symbol == "X" else self.o_color)
+            self.status_label.config(text="Your Turn!", 
+                                   fg=self.colors[self.player_symbol.lower()])
         else:
-            self.status_label.config(text="AI is thinking...", fg="#333333")
+            self.status_label.config(text="AI is thinking...", fg=self.colors["text"])
     
     def update_stats_display(self):
         player_stat = self.stats['X'] if self.player_symbol == 'X' else self.stats['O']
         ai_stat = self.stats['O'] if self.ai_symbol == 'O' else self.stats['X']
-        
         self.stats_labels["X"].config(text=f"You: {player_stat}")
         self.stats_labels["O"].config(text=f"AI: {ai_stat}")
         self.stats_labels["Draw"].config(text=f"Draws: {self.stats['Draw']}")
